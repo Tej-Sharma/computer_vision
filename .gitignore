@@ -1,0 +1,8 @@
+venv/
+.idea/
+
+img1/
+
+old/venv/
+
+yolov3.weights
