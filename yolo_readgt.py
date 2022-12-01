@@ -11,6 +11,8 @@ import os
 import argparse
 
 
+
+# GLOBAL setup variables
 ap = argparse.ArgumentParser()
 ap.add_argument('-g', '--groundtruth', required=True,
                 help = 'path to ground truth file')
@@ -23,9 +25,23 @@ ap.add_argument('-w', '--weights', required=True,
 ap.add_argument('-cl', '--classes', required=True,
                 help = 'path to text file containing class names')
 args = ap.parse_args()
+classes = None
+
+
+with open(args.classes, 'r') as f:
+    classes = [line.strip() for line in f.readlines()]
+    print(classes)
+
+COLORS = np.random.uniform(0, 255, size=(len(classes), 3))
+net = cv2.dnn.readNet(args.weights, args.config)
+
+
+previous_detections = []
+curr_detetctions = []
+memory_pool = []
+
 
 def get_output_layers(net):
-    
     layer_names = net.getLayerNames()
     try:
         output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
@@ -33,7 +49,6 @@ def get_output_layers(net):
         output_layers = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 
     return output_layers
-
 
 def draw_prediction(img, class_id, confidence, x, y, x_plus_w, y_plus_h):
     label = str(classes[class_id])
@@ -47,16 +62,16 @@ def draw_prediction(img, class_id, confidence, x, y, x_plus_w, y_plus_h):
 
     cv2.putText(img, label, (x-10,y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
+# TODO
+def compare_frame_detections():
+  # Compare and match similars
 
-classes = None
+  # Create new previous frame
 
-with open(args.classes, 'r') as f:
-    classes = [line.strip() for line in f.readlines()]
-    print(classes)
+  # Create memory pool
 
-COLORS = np.random.uniform(0, 255, size=(len(classes), 3))
-net = cv2.dnn.readNet(args.weights, args.config)
-
+  # Draw curr detections based on matched
+  pass
 
 def yolo_tracker(image, winname):
   scale = 0.00392
@@ -101,7 +116,11 @@ def yolo_tracker(image, winname):
       y = box[1]
       w = box[2]
       h = box[3]
-      draw_prediction(image, class_ids[i], confidences[i], round(x), round(y), round(x+w), round(y+h))
+
+      curr_detetctions.append(None, class_ids[i], confidences[i], round(x), round(y), round(x+w), round(y+h))
+      compare_frame_detections()
+
+      # draw_prediction(image, class_ids[i], confidences[i], round(x), round(y), round(x+w), round(y+h))
   
   cv2.imshow(winname, image)
 
@@ -137,13 +156,6 @@ def getboxes(filename):
     return boxes
 
 
-def my_tracker(grey, frame, winname):
-  face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_fullbody.xml")
-  detected_objects = face_cascade.detectMultiScale(grey)
-  for (column, row, width, height) in detected_objects:
-          cv2.rectangle(frame,(column, row),(column + width, row + height),(0, 255, 0),2)
-  cv2.imshow(winname, frame)
-
 def main():
 
     if len(sys.argv) < 3:
@@ -154,7 +166,7 @@ def main():
     dir = args.image
 
     # Read in the file and get all of the bounding box data
-    bb = getboxes(groundtruth)
+    # bb = getboxes(groundtruth)
 
     cv2.namedWindow("Ground Truth", cv2.WINDOW_NORMAL)
 
@@ -177,6 +189,7 @@ def main():
 
                 yolo_tracker(frame, winname)
 
+                # Shows ground truth
                 # # for each frame, go through the dictionary and find
                 # # the corresponding bounding boxes for each frame
                 # # Then, draw them on the frame
